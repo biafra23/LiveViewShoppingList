@@ -3,7 +3,6 @@ package org.openintents.extensions.liveviewshopping;
 import org.openintents.shopping.Shopping;
 import org.openintents.shopping.Shopping.Contains;
 import org.openintents.shopping.Shopping.ContainsFull;
-import org.openintents.shopping.Shopping.Status;
 import org.openintents.shopping.provider.ShoppingUtils;
 
 import android.content.ComponentName;
@@ -31,6 +30,8 @@ import com.sonyericsson.extras.liveware.plugins.PluginConstants;
 import com.sonyericsson.extras.liveware.plugins.PluginUtils;
 
 public class LVShoppingService extends AbstractPluginService {
+
+    private int mPos = 0;
 
     public class MyContentObserver extends ContentObserver {
 
@@ -100,7 +101,7 @@ public class LVShoppingService extends AbstractPluginService {
             Log.d(LOG_TAG, "mShoppingListId: " + mShoppingListId);
 
             refreshCursor();
-            // sendFirstShoppingItem();
+            // sendShoppingItem();
 
             getContentResolver().registerContentObserver(
                     Shopping.Contains.CONTENT_URI, true, mContentObserver);
@@ -117,10 +118,10 @@ public class LVShoppingService extends AbstractPluginService {
     }
 
     private void sendFirstShoppingItem() {
-        sendFirstShoppingItem(0);
+        sendShoppingItem(0);
     }
-    
-    private void sendFirstShoppingItem(int pos) {
+
+    private void sendShoppingItem(int pos) {
         boolean sent = false;
         if (mExistingItems != null) {
             mExistingItems.requery();
@@ -137,7 +138,7 @@ public class LVShoppingService extends AbstractPluginService {
                 mSentItemId = mExistingItems.getString(0);
 
                 if (!TextUtils.isEmpty(quantity)) {
-                    item = quantity + " " + item;
+                    item = quantity + " x " + item;
                 }
 
                 sendItemTextBitmap(mLiveViewAdapter, mPluginId,
@@ -200,7 +201,9 @@ public class LVShoppingService extends AbstractPluginService {
         // Empty bitmap and link the canvas to it
         Bitmap bitmap = null;
         try {
-            bitmap = Bitmap.createBitmap(128, 40, Bitmap.Config.RGB_565);
+
+            bitmap = Bitmap.createBitmap(128, 128, Bitmap.Config.RGB_565);
+
         } catch (IllegalArgumentException e) {
             return;
         }
@@ -209,28 +212,31 @@ public class LVShoppingService extends AbstractPluginService {
 
         // Set the text properties in the canvas
         TextPaint textPaint = new TextPaint();
-        textPaint.setTextSize(18);
+        textPaint.setTextSize(12);
+        textPaint.setAntiAlias(true);
         textPaint.setColor(Color.WHITE);
 
         // Create the text layout and draw it to the canvas
         Layout textLayout = new StaticLayout(item, textPaint, 128,
-                Layout.Alignment.ALIGN_CENTER, 1, 1, false);
+                Layout.Alignment.ALIGN_NORMAL, 1, 1, false);
         textLayout.draw(canvas);
 
+//        textLayout.getWidth();
+//        textLayout.getHeight();
 
         if (!TextUtils.isEmpty(tags)) {
             // now smaller text
-            textPaint.setTextSize(12);
+            textPaint.setTextSize(10);
             canvas.translate(0, 20);
             // Create the text layout and draw it to the canvas
             textLayout = new StaticLayout(tags, textPaint, 128,
-                    Layout.Alignment.ALIGN_CENTER, 1, 1, false);
+                    Layout.Alignment.ALIGN_NORMAL, 1, 1, false);
             textLayout.draw(canvas);
         }
 
         try {
             mLiveViewAdapter.sendImageAsBitmap(mPluginId,
-                    PluginUtils.centerX(bitmap), PluginUtils.centerY(bitmap),
+                    1, 1,
                     bitmap);
         } catch (Exception e) {
             Log.d(PluginConstants.LOG_TAG, "Failed to send bitmap", e);
@@ -365,14 +371,35 @@ public class LVShoppingService extends AbstractPluginService {
 
     }
 
+    /**
+     * @param buttonType  - up, left, down, right, select
+     * @param doublepress
+     * @param longpress
+     */
     @Override
     protected void button(String buttonType, boolean doublepress,
                           boolean longpress) {
+
         Log.d(PluginConstants.LOG_TAG, "button - type " + buttonType
                 + ", doublepress " + doublepress + ", longpress " + longpress);
-        toggleBoughtItem();
-        sendFirstShoppingItem();
 
+        if ("select".equals(buttonType)) {
+            toggleBoughtItem();
+        }
+
+        if (mExistingItems != null) {
+
+
+            if ("up".equals(buttonType)) {
+                mPos += mExistingItems.getCount() - 1;
+            } else if ("down".equals(buttonType) || "select".equals(buttonType)) {
+                mPos++;
+            }
+            mPos %= mExistingItems.getCount();
+
+            sendShoppingItem(mPos);
+
+        }
     }
 
     @Override
