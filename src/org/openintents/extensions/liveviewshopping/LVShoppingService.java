@@ -36,13 +36,14 @@ public class LVShoppingService extends AbstractPluginService {
     public class MyContentObserver extends ContentObserver {
 
         public MyContentObserver() {
+
             super(null);
         }
 
         @Override
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
-            sendFirstShoppingItem();
+            sendShoppingItem(mPos);
         }
 
     }
@@ -52,6 +53,9 @@ public class LVShoppingService extends AbstractPluginService {
     private Handler mHandler;
     private boolean mAllowedToBind;
     private long mShoppingListId;
+
+//    private Item mCurrentItem;
+
     private ContentObserver mContentObserver = new MyContentObserver();
     private Cursor mExistingItems;
     private String mSentItemId;
@@ -62,7 +66,9 @@ public class LVShoppingService extends AbstractPluginService {
         // ...
         // Do plugin specifics.
         // ...
-        Log.e(PluginConstants.LOG_TAG, "Starting Service");
+        Log.i(PluginConstants.LOG_TAG, "Starting Service...");
+        Log.i(PluginConstants.LOG_TAG, "Starting Service...");
+
         startWork();
         Log.i(LOG_TAG, "after startWork()");
 
@@ -71,7 +77,7 @@ public class LVShoppingService extends AbstractPluginService {
             @Override
             public void run() {
                 Log.i(LOG_TAG, "run() called");
-                sendFirstShoppingItem();
+                sendShoppingItem(mPos);
 
             }
         }, System.currentTimeMillis() + 1000 /** 60 * 2*/);
@@ -85,64 +91,105 @@ public class LVShoppingService extends AbstractPluginService {
 
     protected void startWork() {
         // Check if plugin is enabled.
-        if (mSharedPreferences.getBoolean(
-                PluginConstants.PREFERENCES_PLUGIN_ENABLED, false)) {
+//        if (mSharedPreferences.getBoolean(PluginConstants.PREFERENCES_PLUGIN_ENABLED, false)) {
 
-            Log.i(LOG_TAG, "Plugin enabled");
+        Log.i(LOG_TAG, "Plugin enabled");
 
-            // Do stuff.
-            if (mHandler == null) {
-                mHandler = new Handler();
-            }
-
-            // TODO use pick list and preferences
-            mShoppingListId = ShoppingUtils.getFirstList(this);
-
-            Log.d(LOG_TAG, "mShoppingListId: " + mShoppingListId);
-
-            refreshCursor();
-            // sendShoppingItem();
-
-            getContentResolver().registerContentObserver(
-                    Shopping.Contains.CONTENT_URI, true, mContentObserver);
-            getContentResolver().registerContentObserver(
-                    Shopping.ContainsFull.CONTENT_URI, true, mContentObserver);
-            getContentResolver().registerContentObserver(
-                    Shopping.Items.CONTENT_URI, true, mContentObserver);
-        } else {
-            Log.e(LOG_TAG, "Plugin disabled");
-
+        // Do stuff.
+        if (mHandler == null) {
+            mHandler = new Handler();
         }
+
+        // TODO use pick list and preferences
+        mShoppingListId = ShoppingUtils.getFirstList(this);
+
+        Log.d(LOG_TAG, "mShoppingListId: " + mShoppingListId);
+
+        refreshCursor();
+        // sendShoppingItem();
+
+        getContentResolver().registerContentObserver(
+                Shopping.Contains.CONTENT_URI, true, mContentObserver);
+        getContentResolver().registerContentObserver(
+                Shopping.ContainsFull.CONTENT_URI, true, mContentObserver);
+        getContentResolver().registerContentObserver(
+                Shopping.Items.CONTENT_URI, true, mContentObserver);
+//        } else {
+//            Log.e(LOG_TAG, "Plugin disabled");
+//
+//        }
 
         Log.d(LOG_TAG, "end of startWork() reached");
     }
 
-    private void sendFirstShoppingItem() {
-        sendShoppingItem(0);
+//    private void sendFirstShoppingItem() {
+//        Log.d(LOG_TAG, "sendFirstShoppingItem()");
+//        Log.d(LOG_TAG, "sendFirstShoppingItem()");
+//        Log.d(LOG_TAG, "sendFirstShoppingItem()");
+//
+//        sendShoppingItem(0);
+//    }
+
+
+    private Item getItem(int pos) {
+
+        Item result = null;
+        if (mExistingItems != null) {
+            mExistingItems.requery();
+            mExistingItems.moveToPosition(pos);
+            if (mExistingItems.getCount() > 0) {
+
+                result = new Item(
+
+                        mExistingItems.getString(0),
+                        mExistingItems.getString(1),
+                        mExistingItems.getString(2),
+                        mExistingItems.getInt(3),
+//                        mExistingItems.getInt(4),
+                        mExistingItems.getInt(5)
+                        
+                );
+            }
+        }
+        return result;
     }
 
     private void sendShoppingItem(int pos) {
+
+
         boolean sent = false;
         if (mExistingItems != null) {
             mExistingItems.requery();
             mExistingItems.moveToPosition(pos);
 
             if (mExistingItems.getCount() > 0) {
+
+                mSentItemId = mExistingItems.getString(0);
                 String item = mExistingItems.getString(1);
                 String tags = mExistingItems.getString(2);
+
                 String quantity = mExistingItems.getString(3);
-                Uri boughtUri = Uri.withAppendedPath(Contains.CONTENT_URI,
-                        mExistingItems.getString(0));
-                Log.v("TAG", "sending:" + item);
-                Log.v("TAG", "sending uri:" + boughtUri.toString());
-                mSentItemId = mExistingItems.getString(0);
+                int status = mExistingItems.getInt(5);
+
+                Uri boughtUri = Uri.withAppendedPath(Contains.CONTENT_URI, mExistingItems.getString(0));
+
+                Log.v(LOG_TAG, "sending:" + item);
+                Log.v(LOG_TAG, "sending uri:" + boughtUri.toString());
+
 
                 if (!TextUtils.isEmpty(quantity)) {
                     item = quantity + " x " + item;
                 }
 
-                sendItemTextBitmap(mLiveViewAdapter, mPluginId,
-                        tags, item);
+                Log.d(LOG_TAG, "status: [" + status + "]");
+
+                if (status == 1) {
+                    item = "\u2610 " + item;
+                } else {
+//                    item = "\u2611 " + item;
+                    item = "\u2713 " + item;
+                }
+                sendItemTextBitmap(mLiveViewAdapter, mPluginId, tags, item);
                 sent = true;
 
                 // mJerryService.sendAnnounce(mPluginId, mMenuIcon, quantity
@@ -198,6 +245,8 @@ public class LVShoppingService extends AbstractPluginService {
 
     private void sendItemTextBitmap(LiveViewAdapter mLiveViewAdapter,
                                     int mPluginId, String tags, String item) {
+
+        Log.d(LOG_TAG, "sendItemTextBitmap(): item: " + item);
         // Empty bitmap and link the canvas to it
         Bitmap bitmap = null;
         try {
@@ -212,7 +261,7 @@ public class LVShoppingService extends AbstractPluginService {
 
         // Set the text properties in the canvas
         TextPaint textPaint = new TextPaint();
-        textPaint.setTextSize(12);
+        textPaint.setTextSize(14);
         textPaint.setAntiAlias(true);
         textPaint.setColor(Color.WHITE);
 
@@ -227,7 +276,7 @@ public class LVShoppingService extends AbstractPluginService {
         if (!TextUtils.isEmpty(tags)) {
             // now smaller text
             textPaint.setTextSize(10);
-            canvas.translate(0, 20);
+            canvas.translate(1, textLayout.getHeight());
             // Create the text layout and draw it to the canvas
             textLayout = new StaticLayout(tags, textPaint, 128,
                     Layout.Alignment.ALIGN_NORMAL, 1, 1, false);
@@ -258,7 +307,7 @@ public class LVShoppingService extends AbstractPluginService {
                     ContainsFull.CONTENT_URI,
                     new String[]{ContainsFull._ID, ContainsFull.ITEM_NAME,
                             ContainsFull.ITEM_TAGS, ContainsFull.QUANTITY,
-                            ContainsFull.MODIFIED_DATE},
+                            ContainsFull.MODIFIED_DATE, ContainsFull.STATUS},
                     ContainsFull.LIST_ID + " = ? ",
 //                            + " AND " + ContainsFull.STATUS
 //                            + " = " + Status.WANT_TO_BUY,
@@ -280,18 +329,54 @@ public class LVShoppingService extends AbstractPluginService {
 
     }
 
-    protected void toggleBoughtItem(String openInPhoneAction) {
+    protected void toggleBoughtItem2(String contentUri) {
 
-        if (!OPEN_IN_PHONE_ACTION_RETRY.equals(openInPhoneAction)) {
+        if (!OPEN_IN_PHONE_ACTION_RETRY.equals(contentUri)) {
+
+            Log.d(LOG_TAG, "getItem(mPos).bought: " + getItem(mPos).bought);
+
             ContentValues values = new ContentValues();
+
             values.put(Shopping.Contains.STATUS, Shopping.Status.BOUGHT);
             int count = getContentResolver().update(
-                    Uri.parse(openInPhoneAction), values, null, null);
+                    Uri.parse(contentUri), values, null, null);
             Log.v(LOG_TAG, count + " item(s) updated.");
 
         }
 
-        sendFirstShoppingItem();
+        sendShoppingItem(mPos);
+    }
+
+    protected void toggleBoughtItem(String contentUri) {
+
+        if (!OPEN_IN_PHONE_ACTION_RETRY.equals(contentUri)) {
+
+            ContentValues values = new ContentValues();
+
+
+            if (getItem(mPos).bought) {
+
+                Log.d(LOG_TAG, "getItem(mPos).bought");
+
+                values.put(Shopping.Contains.STATUS, Shopping.Status.WANT_TO_BUY);
+
+            } else {
+
+                Log.d(LOG_TAG, "NOT getItem(mPos).bought");
+
+                values.put(Shopping.Contains.STATUS, Shopping.Status.BOUGHT);
+
+            }
+
+            Log.d(LOG_TAG, "           values: " + values);
+            Log.d(LOG_TAG, "contentUri: " + contentUri);
+
+            int count = getContentResolver().update(Uri.parse(contentUri), values, null, null);
+            Log.v(LOG_TAG, count + " item(s) updated.");
+
+        }
+
+        sendShoppingItem(mPos);
     }
 
     /**
@@ -354,12 +439,11 @@ public class LVShoppingService extends AbstractPluginService {
 
     @Override
     protected void startPlugin() {
-        Log.d(PluginConstants.LOG_TAG, "startPlugin");
+        Log.d(LOG_TAG, "startPlugin");
 
         // Check if plugin is enabled.
-        if (mSharedPreferences.getBoolean(
-                PluginConstants.PREFERENCES_PLUGIN_ENABLED, false)) {
-            sendFirstShoppingItem();
+        if (mSharedPreferences.getBoolean(PluginConstants.PREFERENCES_PLUGIN_ENABLED, false)) {
+            sendShoppingItem(mPos);
         }
 
     }
@@ -391,8 +475,11 @@ public class LVShoppingService extends AbstractPluginService {
 
 
             if ("up".equals(buttonType)) {
+
                 mPos += mExistingItems.getCount() - 1;
-            } else if ("down".equals(buttonType) || "select".equals(buttonType)) {
+
+            } else if ("down".equals(buttonType)) {
+
                 mPos++;
             }
             mPos %= mExistingItems.getCount();
@@ -419,7 +506,7 @@ public class LVShoppingService extends AbstractPluginService {
     protected void openInPhone(String openInPhoneAction) {
         Log.d(PluginConstants.LOG_TAG, "openInPhone: " + openInPhoneAction);
         toggleBoughtItem(openInPhoneAction);
-        sendFirstShoppingItem();
+        sendShoppingItem(mPos);
 
     }
 
@@ -429,4 +516,26 @@ public class LVShoppingService extends AbstractPluginService {
 
     }
 
+    private class Item {
+
+        private Item(String id, String item, String tags, int quantity, int bought) {
+            this.item = item;
+            this.tags = tags;
+            this.quantity = quantity;
+            if (bought == 1) {
+
+                this.bought = false;
+            } else {
+
+                this.bought = true;
+
+            }
+        }
+
+        public String id;
+        public String item;
+        public String tags;
+        public int quantity;
+        public boolean bought;
+    }
 }
