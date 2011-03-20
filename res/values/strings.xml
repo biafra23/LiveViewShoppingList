@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OI Shopping list LiveView</string>
+	<string name="enabled">Enabled</string>
+
+<string name="pluginname">OI Shopping LiveView Plugin</string>
+<string name="intent_service">org.openintents.extensions.liveviewshopping.SERVICE</string>    	    
+<string name="intent_preferences">org.openintents.extensions.liveviewshopping.PREFERENCES</string>
+<string name="application_description">Extends:com.sonyericsson.extras.liveview</string>
+
+<string name="info">Information</string>
+<string name="no_item">No item on your list - click to retry</string>
+<string name="preferences">OI Shopping Preferences</string>
+</resources>
