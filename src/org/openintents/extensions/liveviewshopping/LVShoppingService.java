@@ -52,7 +52,10 @@ public class LVShoppingService extends AbstractPluginService {
     private static final String OPEN_IN_PHONE_ACTION_RETRY = "retry";
     private Handler mHandler;
     private boolean mAllowedToBind;
-    private long mShoppingListId;
+    //    private long mShoppingListId;
+    private int mShoppingListPos = 0;
+
+    private long[] mShoppingListIds;
 
 //    private Item mCurrentItem;
 
@@ -100,35 +103,39 @@ public class LVShoppingService extends AbstractPluginService {
             mHandler = new Handler();
         }
 
-        // TODO use pick list and preferences
-        mShoppingListId = ShoppingUtils.getFirstList(this);
+//        // TODO use pick list and preferences
+//        mShoppingListId = ShoppingUtils.getFirstList(this);
 
-        Log.d(LOG_TAG, "mShoppingListId: " + mShoppingListId);
+
+        initShoppingLists();
+
+        Log.d(LOG_TAG, "end of startWork() reached");
+    }
+
+    private void initShoppingLists() {
+
+        mShoppingListIds = ShoppingUtils.getListsIds(this);
+
+        for (long id : mShoppingListIds) {
+
+            Log.d(LOG_TAG, "mShoppingListIds: " + id);
+        }
+
+        Log.d(LOG_TAG, "mShoppingListId: " + mShoppingListIds[mShoppingListPos]);
 
         refreshCursor();
         // sendShoppingItem();
 
         getContentResolver().registerContentObserver(
-                Shopping.Contains.CONTENT_URI, true, mContentObserver);
+                Contains.CONTENT_URI, true, mContentObserver);
         getContentResolver().registerContentObserver(
-                Shopping.ContainsFull.CONTENT_URI, true, mContentObserver);
+                ContainsFull.CONTENT_URI, true, mContentObserver);
         getContentResolver().registerContentObserver(
                 Shopping.Items.CONTENT_URI, true, mContentObserver);
-//        } else {
-//            Log.e(LOG_TAG, "Plugin disabled");
-//
-//        }
 
-        Log.d(LOG_TAG, "end of startWork() reached");
+        mPos = 0;
+        getItem(mPos);
     }
-
-//    private void sendFirstShoppingItem() {
-//        Log.d(LOG_TAG, "sendFirstShoppingItem()");
-//        Log.d(LOG_TAG, "sendFirstShoppingItem()");
-//        Log.d(LOG_TAG, "sendFirstShoppingItem()");
-//
-//        sendShoppingItem(0);
-//    }
 
 
     private Item getItem(int pos) {
@@ -147,7 +154,7 @@ public class LVShoppingService extends AbstractPluginService {
                         mExistingItems.getInt(3),
 //                        mExistingItems.getInt(4),
                         mExistingItems.getInt(5)
-                        
+
                 );
             }
         }
@@ -311,7 +318,7 @@ public class LVShoppingService extends AbstractPluginService {
                     ContainsFull.LIST_ID + " = ? ",
 //                            + " AND " + ContainsFull.STATUS
 //                            + " = " + Status.WANT_TO_BUY,
-                    new String[]{String.valueOf(mShoppingListId)}, null);
+                    new String[]{String.valueOf(mShoppingListIds[mShoppingListPos])}, null);
 
 
         } catch (Exception e) {
@@ -487,6 +494,23 @@ public class LVShoppingService extends AbstractPluginService {
             sendShoppingItem(mPos);
 
         }
+
+        if ("left".equals(buttonType) || "right".equals(buttonType)) {
+
+
+            if ("left".equals(buttonType)) {
+
+                mShoppingListPos += mShoppingListIds.length - 1;
+
+            } else if ("right".equals(buttonType)) {
+
+                mShoppingListPos++;
+            }
+            mShoppingListPos %= mShoppingListIds.length;
+            initShoppingLists();
+            sendShoppingItem(mPos);
+        }
+
     }
 
     @Override
