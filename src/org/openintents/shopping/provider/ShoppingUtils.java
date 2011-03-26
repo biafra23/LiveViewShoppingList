@@ -229,6 +229,27 @@ public class ShoppingUtils {
         }
     }
 
+    /*
+E/AndroidRuntime( 2469): 	at android.app.ActivityThread.handleServiceArgs(ActivityThread.java:3329)
+E/AndroidRuntime( 2469): 	at android.app.ActivityThread.access$3600(ActivityThread.java:136)
+E/AndroidRuntime( 2469): 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2252)
+E/AndroidRuntime( 2469): 	at android.os.Handler.dispatchMessage(Handler.java:99)
+E/AndroidRuntime( 2469): 	at android.os.Looper.loop(Looper.java:143)
+E/AndroidRuntime( 2469): 	at android.app.ActivityThread.main(ActivityThread.java:5068)
+E/AndroidRuntime( 2469): 	at java.lang.reflect.Method.invokeNative(Native Method)
+E/AndroidRuntime( 2469): 	at java.lang.reflect.Method.invoke(Method.java:521)
+E/AndroidRuntime( 2469): 	at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:858)
+E/AndroidRuntime( 2469): 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:616)
+E/AndroidRuntime( 2469): 	at dalvik.system.NativeStart.main(Native Method)
+E/AndroidRuntime( 2469): Caused by: java.lang.NullPointerException
+E/AndroidRuntime( 2469): 	at org.openintents.shopping.provider.ShoppingUtils.getFirstList(ShoppingUtils.java:241)
+E/AndroidRuntime( 2469): 	at org.openintents.extensions.liveviewshopping.LVShoppingService.startWork(LVShoppingService.java:100)
+E/AndroidRuntime( 2469): 	at org.openintents.extensions.liveviewshopping.LVShoppingService.onStart(LVShoppingService.java:68)
+E/AndroidRuntime( 2469): 	at android.app.Service.onStartCommand(Service.java:420)
+E/AndroidRuntime( 2469): 	at android.app.ActivityThread.handleServiceArgs(ActivityThread.java:3315)
+E/AndroidRuntime( 2469): 	... 10 more
+
+     */
     public static long getFirstList(Context context) {
         Cursor existingLists = context.getContentResolver().query(Shopping.Lists.CONTENT_URI,
                 new String[]{Shopping.Lists._ID}, null,
